@@ -1,0 +1,50 @@
+# Run report — {{ run_id }}
+
+| | |
+|---|---|
+| Backend | {{ backend }} |
+| Status | {{ status }} |
+| Model | {{ model_path }} |
+| Started | {{ started_at }} |
+| Duration | {{ "%.1f"|format(duration_s) }} s |
+
+## Fit summary
+
+| OFV | AIC | BIC | Condition # |
+|---|---|---|---|
+| {{ ofv if ofv is not none else "—" }} | {{ aic if aic is not none else "—" }} | {{ bic if bic is not none else "—" }} | {{ condition_number if condition_number is not none else "—" }} |
+
+## Parameter estimates
+
+| Parameter | Type | Estimate | SE | RSE % |
+|---|---|---|---|---|
+{% for p in parameters -%}
+| {{ p.name }} | {{ p.type }} | {{ p.estimate }} | {{ p.se if p.se is not none else "—" }} | {{ "%.1f"|format(p.rse_pct) if p.rse_pct is not none else "—" }} |
+{% endfor %}
+
+{% if eta_shrinkage %}
+## η-shrinkage
+
+| η | Shrinkage |
+|---|---|
+{% for name, val in eta_shrinkage.items() -%}
+| {{ name }} | {{ "%.3f"|format(val) }} |
+{% endfor %}
+{% endif %}
+{% if bootstrap %}
+## Bootstrap ({{ bootstrap[0].n_success }} replicates)
+
+| Parameter | Estimate | Boot median | CI low | CI high |
+|---|---|---|---|---|
+{% for b in bootstrap -%}
+| {{ b.name }} | {{ b.original_est }} | {{ b.boot_median }} | {{ b.ci_lo }} | {{ b.ci_hi }} |
+{% endfor %}
+{% endif %}
+{% if plots %}
+## Diagnostics
+
+{% for plot in plots -%}
+![{{ plot.title }}]({{ plot.path }})
+
+{% endfor %}
+{% endif %}

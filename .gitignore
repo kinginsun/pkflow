@@ -1,0 +1,73 @@
+# ---- Python ----
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# ---- Virtual environments ----
+.venv/
+venv/
+env/
+ENV/
+
+# ---- Packaging / build ----
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# ---- Testing / coverage ----
+.pytest_cache/
+.cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.mypy_cache/
+.ruff_cache/
+
+# ---- Pyrana run outputs ----
+# Run directories and command outputs are reproducible artifacts, not source.
+runs/
+compare/
+*.parquet
+results.yaml
+
+# ---- NONMEM working files (in case a model is run inside the repo) ----
+*.lst
+*.ext
+*.phi
+*.cov
+*.cor
+*.coi
+*.xml
+*.cpu
+*.grd
+*.shk
+*.shm
+*.smt
+*.rmt
+FCON
+FDATA*
+FMSG
+FREPORT
+FSIZES
+FSTREAM
+FSUBS*
+INTER
+LINK*.LNK
+PRSIZES.f90
+nonmem
+temp_dir/
+sdtab*
+patab*
+
+# ---- Editors / OS ----
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db

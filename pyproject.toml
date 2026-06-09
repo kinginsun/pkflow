@@ -1,0 +1,29 @@
+[project]
+name = "pyrana"
+version = "2.0.0a0"
+description = "Pharmacometric modeling workflow CLI"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Yufeng Zhang", email = "zhangyf@cuhk.edu.hk" }]
+requires-python = ">=3.10"
+dependencies = [
+    "typer>=0.12",
+    "pydantic>=2.0",
+    "pandas>=2.0",
+    "pyyaml>=6.0",
+    "pharmpy-core>=1.0",
+    "plotnine>=0.13",
+    "scikit-misc>=0.3",  # loess smoothing for GOF plots (geom_smooth method="loess")
+    "pyarrow>=14.0",     # parquet sidecars for Results
+    "jinja2>=3.1",       # report templating (html/docx conversion needs system pandoc)
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+pyrana = "pyrana.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
