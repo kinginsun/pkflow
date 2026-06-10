@@ -109,13 +109,7 @@ fi
 
 # ---- commit + tag + push --------------------------------------------------
 echo ""
-read -p "→ commit and push v$NEW? [y/N] " yn
-if [[ "$yn" != "y" && "$yn" != "Y" ]]; then
-    echo "aborted. reverting changes."
-    git checkout -- pyproject.toml README.md
-    exit 1
-fi
-
+echo "→ committing and pushing v$NEW"
 git add pyproject.toml README.md
 git commit -m "release: $NEW"
 git tag "v$NEW"
