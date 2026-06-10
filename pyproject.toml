@@ -1,6 +1,6 @@
 [project]
 name = "pkflow"
-version = "2.0.0a0"
+version = "0.1.0a0"
 description = "Pharmacometric modeling workflow CLI"
 readme = "README.md"
 license = { text = "MIT" }
