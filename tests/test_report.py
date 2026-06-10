@@ -4,10 +4,13 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from pkflow.report.render import build_context, render_markdown, render
+from pkflow.report.render import (
+    build_context, render_markdown, render, _find_pdf_engine, FORMATS,
+)
 from .conftest import make_results
 
 HAS_PANDOC = shutil.which("pandoc") is not None
+HAS_PDF_ENGINE = _find_pdf_engine() is not None
 
 
 def _params():
@@ -120,3 +123,39 @@ def test_render_docx_via_pandoc(tmp_path):
     path = render(_results(), tmp_path, tmp_path / "out", fmt="docx")
     assert path.exists() and path.suffix == ".docx"
     assert path.stat().st_size > 0
+
+
+@pytest.mark.skipif(not (HAS_PANDOC and HAS_PDF_ENGINE),
+                    reason="pandoc + a PDF engine required")
+def test_render_pdf_via_pandoc(tmp_path):
+    path = render(_results(), tmp_path, tmp_path / "out", fmt="pdf")
+    assert path.exists() and path.suffix == ".pdf"
+    assert path.read_bytes().startswith(b"%PDF")
+
+
+# ---- error handling (no external tools needed) ---------------------------
+def test_render_unknown_format_raises(tmp_path):
+    with pytest.raises(ValueError, match="unknown format"):
+        render(_results(), tmp_path, tmp_path / "out", fmt="rtf")
+
+
+def test_pdf_is_a_known_format():
+    assert "pdf" in FORMATS
+
+
+def test_render_pdf_without_engine_raises(tmp_path, monkeypatch):
+    # pandoc present but no PDF engine → clear error, not a pandoc crash
+    import sys
+    render_mod = sys.modules["pkflow.report.render"]
+    monkeypatch.setattr(render_mod.shutil, "which",
+                        lambda name: "/usr/bin/pandoc" if name == "pandoc" else None)
+    with pytest.raises(RuntimeError, match="PDF engine"):
+        render(_results(), tmp_path, tmp_path / "out", fmt="pdf")
+
+
+def test_render_without_pandoc_raises(tmp_path, monkeypatch):
+    import sys
+    render_mod = sys.modules["pkflow.report.render"]
+    monkeypatch.setattr(render_mod.shutil, "which", lambda name: None)
+    with pytest.raises(RuntimeError, match="pandoc is required"):
+        render(_results(), tmp_path, tmp_path / "out", fmt="docx")

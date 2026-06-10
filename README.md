@@ -44,7 +44,7 @@ workbench, with three deliberate design choices:
   - [6. Visual Predictive Check (VPC)](#6-visual-predictive-check-vpc)
   - [7. η / ε shrinkage](#7-η--ε-shrinkage)
   - [8. η–covariate plots](#8-ηcovariate-plots)
-  - [9. Reports (md / html / docx)](#9-reports-md--html--docx)
+  - [9. Reports (md / html / docx / pdf)](#9-reports-md--html--docx--pdf)
   - [10. Use it as a Python library](#10-use-it-as-a-python-library)
 - [Run directory layout](#run-directory-layout)
 - [Architecture](#architecture)
@@ -63,57 +63,82 @@ workbench, with three deliberate design choices:
 Requires **Python ≥ 3.10**.
 
 ```bash
-pip install -e .
+pip install pkflow
 ```
 
 To actually *run* models you also need:
 
-- A **NONMEM** installation with an `nmfe` script on `PATH` (or point at it in
-  `pkflow.toml` — see [Configuration](#configuration)).
-- **pandoc** (system package) — only for `report --format html|docx`. Markdown
-  reports and everything else need no extra tooling.
+- A **NONMEM** installation with an `nmfe` script on `PATH` (or point at it via
+  `pkflow config set nmfe <path>` — see [Configuration](#configuration)).
+- **pandoc** (system package) — only for `report --format html|docx|pdf`.
+  Markdown reports and everything else need no extra tooling.
+- A **PDF engine** — only for `report --format pdf`. pkflow drives whichever it
+  finds first: `weasyprint` (`pip install weasyprint`), `wkhtmltopdf`, or a
+  LaTeX engine (`tectonic` / `xelatex` / `pdflatex`).
 
 Python dependencies (installed automatically): `pharmpy-core`, `pandas`,
-`pyarrow`, `plotnine`, `scikit-misc`, `jinja2`, `pyyaml`, `typer`.
+`pyarrow`, `plotnine`, `scikit-misc`, `jinja2`, `pyyaml`, `typer`, `tomli-w`.
 
 ---
 
 ## Quickstart
 
 ```bash
+# 0. Tell pkflow where NONMEM lives (once, stored in ~/.config/pkflow/config.toml)
+pkflow config set nmfe /opt/nm760/run/nmfe76
+
 # 1. Fit a model — creates runs/<name>_<timestamp>/
 pkflow run model.ctl
 
-# 2. Look at the estimates
-pkflow show runs/model_20260609_120000/
-
-# 3. Diagnostics: GOF + VPC + shrinkage
-pkflow diagnose  runs/model_20260609_120000/
-pkflow vpc       runs/model_20260609_120000/
-pkflow shrinkage runs/model_20260609_120000/
-
-# 4. One report tying it all together
-pkflow report runs/model_20260609_120000/ --format docx --gof
+# 2..N. Downstream commands default to the LAST successful run, so you can
+#       drop the run-dir argument entirely:
+pkflow show
+pkflow diagnose
+pkflow vpc
+pkflow shrinkage
+pkflow report --format pdf --gof
 ```
 
 Every command is independent and operates on a saved run directory, so you can
-re-run, re-collect, and re-diagnose without re-fitting.
+re-run, re-collect, and re-diagnose without re-fitting. Pass an explicit
+`<run_dir>` whenever you want a run other than the most recent one:
+
+```bash
+pkflow show      runs/model_20260609_120000/
+pkflow diagnose  runs/model_20260609_120000/
+```
 
 ---
 
 ## Configuration
 
-Optional `pkflow.toml` in the working directory:
+pkflow reads configuration from two layered TOML files (last wins):
 
-```toml
-backend  = "nonmem"            # only backend today
-executor = "local"            # local subprocess runner
-nmfe     = "/opt/nm760/run/nmfe76"   # path to your NONMEM nmfe script
-runs_dir = "runs"             # where run directories are created
+```
+built-in defaults  <  ~/.config/pkflow/config.toml  <  ./pkflow.toml  <  CLI flags
 ```
 
-All keys are optional; defaults are shown above (`nmfe` defaults to `nmfe75` on
-`PATH`). Override per-invocation with flags like `--backend` / `--runs-dir`.
+Manage it with `pkflow config` — no need to hand-edit files:
+
+```bash
+pkflow config show                              # resolved values + their source
+pkflow config set nmfe /opt/nm760/run/nmfe76    # user-global (default scope)
+pkflow config set --project runs_dir output     # project-local ./pkflow.toml
+pkflow config get nmfe
+pkflow config unset nmfe
+pkflow config path                              # where the user file lives
+```
+
+| Key        | Default   | Meaning                                  |
+|------------|-----------|------------------------------------------|
+| `backend`  | `nonmem`  | Modeling engine (only NONMEM today)      |
+| `executor` | `local`   | Local subprocess runner                  |
+| `nmfe`     | `nmfe75`  | Path to your NONMEM `nmfe` script        |
+| `runs_dir` | `runs`    | Where run directories are created        |
+
+Use the **user** scope for machine-wide settings like the `nmfe` path, and the
+**project** scope (`--project`, writes `./pkflow.toml`) for per-study overrides.
+Per-invocation flags such as `--backend` / `--runs-dir` win over both.
 
 ---
 
@@ -281,11 +306,11 @@ pkflow etacov runs/warfarin_20260609_120000/ --cov WT --cov SEX --cov AGE
 → runs/.../diagnostics/eta_covariates.csv
 ```
 
-### 9. Reports (md / html / docx)
+### 9. Reports (md / html / docx / pdf)
 
 Assemble fit summary, parameter table, shrinkage, any bootstrap result, and the
-diagnostic plots into one document. Markdown is the canonical render; HTML and
-Word are produced via `pandoc`.
+diagnostic plots into one document. Markdown is the canonical render; HTML, Word,
+and PDF are produced via `pandoc`.
 
 ```bash
 # Markdown (no extra dependencies)
@@ -293,11 +318,22 @@ pkflow report runs/warfarin_20260609_120000/ --format md
 
 # Word document, generating GOF plots first and embedding them
 pkflow report runs/warfarin_20260609_120000/ --format docx --gof
+
+# PDF (needs a PDF engine: weasyprint / wkhtmltopdf / a LaTeX engine)
+pkflow report --format pdf --gof          # defaults to the last run
+
+# HTML
+pkflow report --format html
 ```
 
 ```
-→ runs/.../report/report.docx
+→ runs/.../report/report.pdf
 ```
+
+`docx`/`html`/`pdf` require **pandoc** on `PATH`; `pdf` additionally needs a PDF
+engine — pkflow auto-detects `weasyprint`, `wkhtmltopdf`, `tectonic`, `xelatex`,
+or `pdflatex` (in that order) and gives a clear, actionable error if none is
+installed.
 
 ### 10. Use it as a Python library
 

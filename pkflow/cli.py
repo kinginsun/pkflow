@@ -4,7 +4,7 @@ from pathlib import Path
 import time
 import typer
 
-from . import __version__, backends, config
+from . import __version__, backends, config, state
 from .compare import build_table, overlay_gof
 from .diagnostics import save_gof, save_vpc, save_shrinkage, save_eta_covariates
 from .executors import LocalExecutor
@@ -38,6 +38,44 @@ def _new_run_dir(root: Path, model_path: Path) -> Path:
     d = root / f"{model_path.stem}_{ts}"
     d.mkdir(parents=True, exist_ok=False)
     return d
+
+
+def _resolve_run_dir(run_dir: Path | None, *, require_results: bool = True) -> Path:
+    """Pick up the last successful run when omitted, then validate.
+
+    Validation: the path must exist and be a directory. When
+    `require_results=True` (default), it must also contain `results.yaml`
+    — that's what every consumer except `collect` needs.
+
+    Bail out cleanly (no Python traceback) on any failure.
+    """
+    if run_dir is None:
+        cfg = config.load()
+        last = state.get_last_run(Path(cfg["runs_dir"]))
+        if last is None:
+            typer.secho(
+                "no run directory given and no previous successful run recorded.\n"
+                "  pass <run_dir> explicitly, or do `pkflow run <model>` first.",
+                fg="red", err=True,
+            )
+            raise typer.Exit(code=2)
+        typer.secho(f"(using last run: {last})", fg="cyan", err=True)
+        run_dir = last
+
+    if not run_dir.exists():
+        typer.secho(f"✗ run directory does not exist: {run_dir}", fg="red", err=True)
+        raise typer.Exit(code=2)
+    if not run_dir.is_dir():
+        typer.secho(f"✗ not a directory: {run_dir}", fg="red", err=True)
+        raise typer.Exit(code=2)
+    if require_results and not (run_dir / "results.yaml").exists():
+        typer.secho(
+            f"✗ not a pkflow run directory (missing results.yaml): {run_dir}\n"
+            f"  if NONMEM artifacts (.lst/.ext) are present, try: pkflow collect {run_dir}",
+            fg="red", err=True,
+        )
+        raise typer.Exit(code=2)
+    return run_dir
 
 
 @app.command()
@@ -81,12 +119,19 @@ def run(
         typer.secho(f"  full log: {run_dir}/", fg="yellow", err=True)
         raise typer.Exit(code=1)
 
+    # Stamp last-successful-run marker for downstream commands to default to.
+    state.set_last_run(runs_dir or Path(cfg["runs_dir"]), run_dir)
     typer.echo(f"status: {results.status}  ofv: {results.ofv}  ({results.duration_s:.1f}s)")
 
 
 @app.command()
-def collect(run_dir: Path):
-    """Re-collect results from an existing run directory (no re-run)."""
+def collect(run_dir: Path = typer.Argument(None)):
+    """Re-collect results from an existing run directory (no re-run).
+
+    Omit <run_dir> to use the last successful run.
+    """
+    # collect *creates* results.yaml from raw NONMEM artifacts, so don't require it.
+    run_dir = _resolve_run_dir(run_dir, require_results=False)
     cfg = config.load()
     be = backends.get(cfg["backend"])
     # Find original .ctl in the run dir
@@ -101,8 +146,12 @@ def collect(run_dir: Path):
 
 
 @app.command()
-def show(run_dir: Path):
-    """Pretty-print a saved results.yaml."""
+def show(run_dir: Path = typer.Argument(None)):
+    """Pretty-print a saved results.yaml.
+
+    Omit <run_dir> to use the last successful run.
+    """
+    run_dir = _resolve_run_dir(run_dir)
     r = Results.load(run_dir)
     typer.echo(f"run      : {r.run_id}")
     typer.echo(f"backend  : {r.backend}")
@@ -117,10 +166,11 @@ def show(run_dir: Path):
 
 @app.command()
 def diagnose(
-    run_dir: Path,
+    run_dir: Path = typer.Argument(None),
     out: Path = typer.Option(None, help="Output dir (default: <run_dir>/diagnostics)"),
 ):
-    """Generate GOF plots from a saved run."""
+    """Generate GOF plots from a saved run. Omit <run_dir> to use the last run."""
+    run_dir = _resolve_run_dir(run_dir)
     r = Results.load(run_dir)
     out_dir = out or (run_dir / "diagnostics")
     written = save_gof(r, out_dir)
@@ -131,13 +181,15 @@ def diagnose(
 
 @app.command()
 def vpc(
-    run_dir: Path,
+    run_dir: Path = typer.Argument(None),
     n_sim: int = typer.Option(500, help="Number of simulation replicates"),
     n_bins: int = typer.Option(10, help="Number of time bins"),
     seed: int = typer.Option(1234),
     out: Path = typer.Option(None, help="Output dir (default: <run_dir>/diagnostics)"),
 ):
-    """Simulate from the fitted model and produce a VPC plot."""
+    """Simulate from the fitted model and produce a VPC plot.
+    Omit <run_dir> to use the last successful run."""
+    run_dir = _resolve_run_dir(run_dir)
     cfg = config.load()
     be = backends.get(cfg["backend"])
     executor = LocalExecutor(cfg)
@@ -216,11 +268,12 @@ def bootstrap(
 
 @app.command()
 def shrinkage(
-    run_dir: Path,
+    run_dir: Path = typer.Argument(None),
     threshold: float = typer.Option(0.30, help="Flag shrinkage above this fraction"),
     out: Path = typer.Option(None, help="Output dir (default: <run_dir>/diagnostics)"),
 ):
-    """η/ε shrinkage table + η distribution plot from a saved run."""
+    """η/ε shrinkage table + η distribution plot. Omit <run_dir> to use last run."""
+    run_dir = _resolve_run_dir(run_dir)
     r = Results.load(run_dir)
     out_dir = out or (run_dir / "diagnostics")
     written = save_shrinkage(r, out_dir, threshold=threshold)
@@ -233,11 +286,12 @@ def shrinkage(
 
 @app.command()
 def etacov(
-    run_dir: Path,
+    run_dir: Path = typer.Argument(None),
     cov: list[str] = typer.Option(None, "--cov", help="Covariate column(s); default auto-detect"),
     out: Path = typer.Option(None, help="Output dir (default: <run_dir>/diagnostics)"),
 ):
-    """η vs covariate plots from a saved run (uses collected covariates)."""
+    """η vs covariate plots. Omit <run_dir> to use the last successful run."""
+    run_dir = _resolve_run_dir(run_dir)
     r = Results.load(run_dir)
     out_dir = out or (run_dir / "diagnostics")
     written = save_eta_covariates(r, out_dir, cols=cov or None)
@@ -247,17 +301,22 @@ def etacov(
 
 @app.command()
 def report(
-    run_dir: Path,
-    fmt: str = typer.Option("md", "--format", help="Output format: md, html, or docx"),
+    run_dir: Path = typer.Argument(None),
+    fmt: str = typer.Option("md", "--format", help="Output format: md, html, docx, or pdf"),
     gof: bool = typer.Option(False, help="Generate GOF plots first, then embed them"),
     out: Path = typer.Option(None, help="Output dir (default: <run_dir>/report)"),
 ):
-    """Render a run report (fit summary, parameters, embedded diagnostics)."""
+    """Render a run report. Omit <run_dir> to use the last successful run."""
+    run_dir = _resolve_run_dir(run_dir)
     r = Results.load(run_dir)
     if gof:
         save_gof(r, run_dir / "diagnostics")
     out_dir = out or (run_dir / "report")
-    path = render_report(r, run_dir, out_dir, fmt=fmt)
+    try:
+        path = render_report(r, run_dir, out_dir, fmt=fmt)
+    except (ValueError, RuntimeError) as e:
+        typer.secho(f"✗ {e}", fg="red", err=True)
+        raise typer.Exit(code=1)
     typer.echo(f"→ {path}")
 
 
