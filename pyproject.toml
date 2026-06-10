@@ -16,6 +16,7 @@ dependencies = [
     "scikit-misc>=0.3",  # loess smoothing for GOF plots (geom_smooth method="loess")
     "pyarrow>=14.0",     # parquet sidecars for Results
     "jinja2>=3.1",       # report templating (html/docx conversion needs system pandoc)
+    "tomli>=2.0; python_version < '3.11'",  # tomllib backport for 3.10
 ]
 
 [project.optional-dependencies]
