@@ -1,8 +1,8 @@
 # PKflow
 
 [![CI](https://github.com/kinginsun/pkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/kinginsun/pkflow/actions/workflows/ci.yml)
-[![PyPI](https://img.shields.io/pypi/v/pkflow.svg)](https://pypi.org/project/pkflow/)
-[![Python](https://img.shields.io/pypi/pyversions/pkflow.svg)](https://pypi.org/project/pkflow/)
+[![PyPI](https://img.shields.io/pypi/v/pkflow.svg?cacheSeconds=600)](https://pypi.org/project/pkflow/)
+[![Python](https://img.shields.io/pypi/pyversions/pkflow.svg?cacheSeconds=600)](https://pypi.org/project/pkflow/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 **A composable command-line workflow tool for pharmacometric modeling.**
