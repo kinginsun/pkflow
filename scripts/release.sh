@@ -64,15 +64,24 @@ if [[ "$LOCAL" != "$REMOTE" ]]; then
     exit 1
 fi
 
-# Tests must pass (skip in dry-run if you want — kept on for safety)
-if command -v pytest >/dev/null 2>&1; then
-    echo "→ running tests..."
-    python -m pytest -q --tb=line || {
+# Tests must pass — prefer .venv if it exists, fall back to PATH python
+if [[ -x .venv/bin/python ]]; then
+    PYTHON=.venv/bin/python
+elif command -v python >/dev/null 2>&1; then
+    PYTHON=python
+else
+    PYTHON=python3
+fi
+
+if "$PYTHON" -c "import pytest" 2>/dev/null; then
+    echo "→ running tests with $PYTHON"
+    "$PYTHON" -m pytest -q --tb=line || {
         echo "✗ tests failed. fix before releasing." >&2
         exit 1
     }
 else
-    echo "⚠ pytest not on PATH — skipping test gate"
+    echo "⚠ pytest not importable from $PYTHON — skipping test gate"
+    echo "  (install dev deps: $PYTHON -m pip install -e '.[dev]')"
 fi
 
 # ---- bump -----------------------------------------------------------------
