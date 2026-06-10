@@ -1,11 +1,26 @@
 [project]
 name = "pkflow"
-version = "0.1.0a2"
+version = "0.1.0a3"
 description = "Pharmacometric modeling workflow CLI"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Yufeng Zhang", email = "zhangyf@cuhk.edu.hk" }]
 requires-python = ">=3.10"
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Healthcare Industry",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+keywords = ["pharmacometrics", "nonmem", "pkpd", "nlme", "modeling", "vpc", "bootstrap"]
 dependencies = [
     "typer>=0.12",
     "pydantic>=2.0",
@@ -21,6 +36,12 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+
+[project.urls]
+Homepage      = "https://github.com/kinginsun/pkflow"
+Repository    = "https://github.com/kinginsun/pkflow"
+Issues        = "https://github.com/kinginsun/pkflow/issues"
+Documentation = "https://github.com/kinginsun/pkflow#readme"
 
 [project.scripts]
 pkflow = "pkflow.cli:app"
