@@ -7,7 +7,7 @@ from .conftest import make_results
 
 runner = CliRunner()
 
-TEMPLATE = Path("/home/ubuntu/pirana/templates/004.mod")
+TEMPLATE = Path(__file__).parent / "fixtures" / "004.mod"
 
 
 def test_parse_command_prints_summary():

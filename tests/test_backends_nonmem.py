@@ -7,7 +7,7 @@ import pytest
 from pkflow.backends.nonmem import NonmemBackend, _classify, _select_covariates
 from pkflow.model import Model, Results
 
-TEMPLATE = Path("/home/ubuntu/pirana/templates/004.mod")
+TEMPLATE = Path(__file__).parent / "fixtures" / "004.mod"
 
 
 # ---- parse (real pharmpy) ------------------------------------------------
