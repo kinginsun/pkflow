@@ -6,6 +6,10 @@ on:
     tags:
       - "v*"
 
+env:
+  # Opt into Node.js 24 for JS-based actions (Node 20 deprecated by GH Actions)
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   build:
     name: Build distribution
