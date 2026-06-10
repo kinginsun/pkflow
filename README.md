@@ -1,5 +1,10 @@
 # PKflow
 
+[![CI](https://github.com/kinginsun/pkflow/actions/workflows/ci.yml/badge.svg)](https://github.com/kinginsun/pkflow/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/pkflow.svg)](https://pypi.org/project/pkflow/)
+[![Python](https://img.shields.io/pypi/pyversions/pkflow.svg)](https://pypi.org/project/pkflow/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **A composable command-line workflow tool for pharmacometric modeling.**
 
 PKflow turns the run → diagnose → compare → report loop of population PK/PD
