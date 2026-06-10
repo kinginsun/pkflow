@@ -6,11 +6,11 @@ import pytest
 from types import SimpleNamespace
 from pathlib import Path
 
-from pyrana.workflows.bootstrap import (
+from pkflow.workflows.bootstrap import (
     resample_subjects, percentile_ci, summarize_bootstrap,
     bootstrap, BootstrapResult,
 )
-from pyrana.model import Model
+from pkflow.model import Model
 from .conftest import make_results
 
 

@@ -74,7 +74,7 @@ def overlay_gof(results: list[Results]) -> ggplot:
         if df.empty or not {"DV", "PRED"}.issubset(df.columns):
             raise ValueError(
                 f"run {r.run_id!r} has no predictions with DV/PRED columns; "
-                "run `pyrana diagnose`/collect a $TABLE first"
+                "run `pkflow diagnose`/collect a $TABLE first"
             )
         if "MDV" in df.columns:
             df = df[df["MDV"] == 0]

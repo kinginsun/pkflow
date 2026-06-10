@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from plotnine import ggplot
 
-from pyrana.diagnostics import gof, save_gof
+from pkflow.diagnostics import gof, save_gof
 from .conftest import make_results
 
 

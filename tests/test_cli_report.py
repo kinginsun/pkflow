@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from typer.testing import CliRunner
 
-from pyrana.cli import app
+from pkflow.cli import app
 from .conftest import make_results
 
 runner = CliRunner()

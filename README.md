@@ -1,8 +1,8 @@
-# Pyrana
+# PKflow
 
 **A composable command-line workflow tool for pharmacometric modeling.**
 
-Pyrana turns the run → diagnose → compare → report loop of population PK/PD
+PKflow turns the run → diagnose → compare → report loop of population PK/PD
 modeling into a handful of scriptable commands. Fit a NONMEM model, collect its
 results into a tidy, file-based format, and generate goodness-of-fit plots,
 VPCs, bootstrap confidence intervals, shrinkage tables, η–covariate plots, and a
@@ -64,7 +64,7 @@ pip install -e .
 To actually *run* models you also need:
 
 - A **NONMEM** installation with an `nmfe` script on `PATH` (or point at it in
-  `pyrana.toml` — see [Configuration](#configuration)).
+  `pkflow.toml` — see [Configuration](#configuration)).
 - **pandoc** (system package) — only for `report --format html|docx`. Markdown
   reports and everything else need no extra tooling.
 
@@ -77,18 +77,18 @@ Python dependencies (installed automatically): `pharmpy-core`, `pandas`,
 
 ```bash
 # 1. Fit a model — creates runs/<name>_<timestamp>/
-pyrana run model.ctl
+pkflow run model.ctl
 
 # 2. Look at the estimates
-pyrana show runs/model_20260609_120000/
+pkflow show runs/model_20260609_120000/
 
 # 3. Diagnostics: GOF + VPC + shrinkage
-pyrana diagnose  runs/model_20260609_120000/
-pyrana vpc       runs/model_20260609_120000/
-pyrana shrinkage runs/model_20260609_120000/
+pkflow diagnose  runs/model_20260609_120000/
+pkflow vpc       runs/model_20260609_120000/
+pkflow shrinkage runs/model_20260609_120000/
 
 # 4. One report tying it all together
-pyrana report runs/model_20260609_120000/ --format docx --gof
+pkflow report runs/model_20260609_120000/ --format docx --gof
 ```
 
 Every command is independent and operates on a saved run directory, so you can
@@ -98,7 +98,7 @@ re-run, re-collect, and re-diagnose without re-fitting.
 
 ## Configuration
 
-Optional `pyrana.toml` in the working directory:
+Optional `pkflow.toml` in the working directory:
 
 ```toml
 backend  = "nonmem"            # only backend today
@@ -115,13 +115,13 @@ All keys are optional; defaults are shown above (`nmfe` defaults to `nmfe75` on
 ## Examples
 
 The examples below use a 2-compartment IV model `warfarin.ctl`. Replace it with
-your own control stream — Pyrana reads `$INPUT`, `$DATA`, parameter blocks, and
+your own control stream — PKflow reads `$INPUT`, `$DATA`, parameter blocks, and
 result files (`.lst`, `.ext`, `.phi`) through pharmpy.
 
 ### 1. Run a model
 
 ```bash
-pyrana run warfarin.ctl
+pkflow run warfarin.ctl
 ```
 
 ```
@@ -137,7 +137,7 @@ predictions, η estimates, covariates).
 ### 2. Inspect saved results
 
 ```bash
-pyrana show runs/warfarin_20260609_120000/
+pkflow show runs/warfarin_20260609_120000/
 ```
 
 ```
@@ -156,7 +156,7 @@ parameters:
  OMEGA_1_1  omega     0.091  0.0150     16.4
 ```
 
-`show` reads only the saved files — no NONMEM needed. Use `pyrana collect
+`show` reads only the saved files — no NONMEM needed. Use `pkflow collect
 <run_dir>` to re-parse the NONMEM output of an existing run without re-fitting.
 
 ### 3. Compare runs
@@ -165,7 +165,7 @@ Rank competing models side by side. ΔOFV is relative to the best (lowest) run;
 failed runs are excluded from the "best" calculation.
 
 ```bash
-pyrana compare runs/base_*/ runs/covCL_*/ runs/covCL_V_*/ --sort ofv --gof
+pkflow compare runs/base_*/ runs/covCL_*/ runs/covCL_V_*/ --sort ofv --gof
 ```
 
 ```
@@ -186,7 +186,7 @@ replicate, and percentile CIs are reported. Non-converged replicates are
 excluded and counted.
 
 ```bash
-pyrana bootstrap warfarin.ctl --n 200 --ci 0.95
+pkflow bootstrap warfarin.ctl --n 200 --ci 0.95
 ```
 
 ```
@@ -210,7 +210,7 @@ The standard 4-panel GOF (DV-vs-PRED, DV-vs-IPRED, CWRES-vs-PRED, CWRES-vs-TIME)
 rendered with [plotnine](https://plotnine.org/):
 
 ```bash
-pyrana diagnose runs/warfarin_20260609_120000/
+pkflow diagnose runs/warfarin_20260609_120000/
 ```
 
 ```
@@ -222,16 +222,16 @@ pyrana diagnose runs/warfarin_20260609_120000/
 ```
 
 > GOF needs a `$TABLE` with `DV PRED IPRED CWRES TIME` written to an
-> `sdtab`-style file so Pyrana can find it.
+> `sdtab`-style file so PKflow can find it.
 
 ### 6. Visual Predictive Check (VPC)
 
-Pyrana converts the fitted model to a simulation (`$SIMULATION` with N
+PKflow converts the fitted model to a simulation (`$SIMULATION` with N
 subproblems), runs it, bins observations by time, and overlays the observed
 5/50/95 percentiles on the simulated prediction intervals.
 
 ```bash
-pyrana vpc runs/warfarin_20260609_120000/ --n-sim 500 --n-bins 10
+pkflow vpc runs/warfarin_20260609_120000/ --n-sim 500 --n-bins 10
 ```
 
 ```
@@ -244,7 +244,7 @@ A shrinkage table (flagging values above a threshold, default 30%) plus a
 faceted histogram of the individual η estimates.
 
 ```bash
-pyrana shrinkage runs/warfarin_20260609_120000/ --threshold 0.30
+pkflow shrinkage runs/warfarin_20260609_120000/ --threshold 0.30
 ```
 
 ```
@@ -265,10 +265,10 @@ subjects); override with `--cov`.
 
 ```bash
 # auto-detect covariates
-pyrana etacov runs/warfarin_20260609_120000/
+pkflow etacov runs/warfarin_20260609_120000/
 
 # or name them explicitly
-pyrana etacov runs/warfarin_20260609_120000/ --cov WT --cov SEX --cov AGE
+pkflow etacov runs/warfarin_20260609_120000/ --cov WT --cov SEX --cov AGE
 ```
 
 ```
@@ -284,10 +284,10 @@ Word are produced via `pandoc`.
 
 ```bash
 # Markdown (no extra dependencies)
-pyrana report runs/warfarin_20260609_120000/ --format md
+pkflow report runs/warfarin_20260609_120000/ --format md
 
 # Word document, generating GOF plots first and embedding them
-pyrana report runs/warfarin_20260609_120000/ --format docx --gof
+pkflow report runs/warfarin_20260609_120000/ --format docx --gof
 ```
 
 ```
@@ -301,12 +301,12 @@ pure — feed them a `Results` object (from a saved run or constructed in memory
 
 ```python
 from pathlib import Path
-from pyrana import backends
-from pyrana.executors import LocalExecutor
-from pyrana.model import Results
-from pyrana.compare import build_table
-from pyrana.diagnostics import save_gof, shrinkage_table
-from pyrana.workflows import bootstrap
+from pkflow import backends
+from pkflow.executors import LocalExecutor
+from pkflow.model import Results
+from pkflow.compare import build_table
+from pkflow.diagnostics import save_gof, shrinkage_table
+from pkflow.workflows import bootstrap
 
 be = backends.get("nonmem")
 ex = LocalExecutor({"nmfe": "/opt/nm760/run/nmfe76"})
@@ -354,9 +354,9 @@ runs/warfarin_20260609_120000/
 ## Architecture
 
 ```
-pyrana/
+pkflow/
 ├── cli.py              # typer entrypoint — every command is a thin wrapper
-├── config.py           # pyrana.toml loader
+├── config.py           # pkflow.toml loader
 ├── compare.py          # cross-run table + overlaid GOF (pure functions)
 ├── model/
 │   ├── base.py         # backend-agnostic Model
@@ -428,20 +428,20 @@ NONMEM** for now.
 
 ## Citation
 
-If you use Pyrana in your research, please cite it:
+If you use PKflow in your research, please cite it:
 
 ```bibtex
-@software{zhang_pyrana,
+@software{zhang_pkflow,
   author  = {Zhang, Yufeng},
-  title   = {Pyrana: A composable command-line workflow tool for pharmacometric modeling},
+  title   = {PKflow: A composable command-line workflow tool for pharmacometric modeling},
   year    = {2026},
-  url      = {https://github.com/kinginsun/pyrana}
+  url      = {https://github.com/kinginsun/pkflow}
 }
 ```
 
 ## Acknowledgements
 
-Pyrana stands on the shoulders of excellent open-source work:
+PKflow stands on the shoulders of excellent open-source work:
 
 - **[pharmpy](https://pharmpy.github.io/)** — NONMEM control-stream parsing and
   result handling.
@@ -467,5 +467,5 @@ MIT License
 Copyright (c) 2026 Yufeng Zhang
 ```
 
-Pyrana is an independent Python project and is not affiliated with the original
+PKflow is an independent Python project and is not affiliated with the original
 Pirana software.

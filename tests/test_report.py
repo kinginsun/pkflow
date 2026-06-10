@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from pyrana.report.render import build_context, render_markdown, render
+from pkflow.report.render import build_context, render_markdown, render
 from .conftest import make_results
 
 HAS_PANDOC = shutil.which("pandoc") is not None

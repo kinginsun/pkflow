@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from plotnine import ggplot
 
-from pyrana.diagnostics.shrinkage import (
+from pkflow.diagnostics.shrinkage import (
     eta_covariate_data, eta_covariate_plots, save_eta_covariates,
 )
 from .conftest import make_results

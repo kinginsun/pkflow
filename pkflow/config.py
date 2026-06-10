@@ -13,7 +13,7 @@ DEFAULTS = {
 
 def load(path: Path | None = None) -> dict:
     cfg = dict(DEFAULTS)
-    p = path or Path("pyrana.toml")
+    p = path or Path("pkflow.toml")
     if p.exists():
         cfg.update(tomllib.loads(p.read_text()))
     return cfg

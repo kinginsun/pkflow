@@ -1,7 +1,7 @@
 from __future__ import annotations
 import pandas as pd
 
-from pyrana.model import Results
+from pkflow.model import Results
 from .conftest import make_results
 
 

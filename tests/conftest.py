@@ -4,7 +4,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from pyrana.model import Results
+from pkflow.model import Results
 
 
 def make_results(

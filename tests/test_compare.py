@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from plotnine import ggplot
 
-from pyrana.compare import build_table, overlay_gof
+from pkflow.compare import build_table, overlay_gof
 from .conftest import make_results
 
 

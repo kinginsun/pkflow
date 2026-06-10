@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-from pyrana.model import Model
+from pkflow.model import Model
 
 
 def test_stem_falls_back_to_path_stem_when_no_name():

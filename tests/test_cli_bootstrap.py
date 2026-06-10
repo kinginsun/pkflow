@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import pandas as pd
 from typer.testing import CliRunner
 
-import pyrana.cli as cli
-from pyrana.model import Model
+import pkflow.cli as cli
+from pkflow.model import Model
 from .conftest import make_results
 
 runner = CliRunner()

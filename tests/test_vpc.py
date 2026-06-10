@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from plotnine import ggplot
 
-from pyrana.diagnostics.vpc import (
+from pkflow.diagnostics.vpc import (
     _bin_edges, _assign_bins, compute_vpc, plot_vpc, save_vpc,
     vpc as run_vpc,
 )

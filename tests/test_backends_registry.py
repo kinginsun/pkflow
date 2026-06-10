@@ -2,9 +2,9 @@ from __future__ import annotations
 from pathlib import Path
 import pytest
 
-from pyrana import backends
-from pyrana.backends import Backend, RunHandle
-from pyrana.backends.nonmem import NonmemBackend
+from pkflow import backends
+from pkflow.backends import Backend, RunHandle
+from pkflow.backends.nonmem import NonmemBackend
 
 
 def test_get_returns_nonmem_backend():

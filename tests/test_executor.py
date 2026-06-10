@@ -1,5 +1,5 @@
 from __future__ import annotations
-from pyrana.executors import LocalExecutor
+from pkflow.executors import LocalExecutor
 
 
 def test_runs_command_and_returns_zero(tmp_path):

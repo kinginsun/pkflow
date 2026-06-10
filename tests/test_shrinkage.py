@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from plotnine import ggplot
 
-from pyrana.diagnostics.shrinkage import (
+from pkflow.diagnostics.shrinkage import (
     shrinkage_table, eta_distributions, save_shrinkage,
 )
 from .conftest import make_results

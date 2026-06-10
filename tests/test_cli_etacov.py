@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from typer.testing import CliRunner
 
-from pyrana.cli import app
+from pkflow.cli import app
 from .conftest import make_results
 
 runner = CliRunner()

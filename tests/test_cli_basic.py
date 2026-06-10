@@ -2,7 +2,7 @@ from __future__ import annotations
 from pathlib import Path
 from typer.testing import CliRunner
 
-from pyrana.cli import app
+from pkflow.cli import app
 from .conftest import make_results
 
 runner = CliRunner()

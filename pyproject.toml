@@ -1,5 +1,5 @@
 [project]
-name = "pyrana"
+name = "pkflow"
 version = "2.0.0a0"
 description = "Pharmacometric modeling workflow CLI"
 readme = "README.md"
@@ -22,7 +22,7 @@ dependencies = [
 dev = ["pytest>=8.0"]
 
 [project.scripts]
-pyrana = "pyrana.cli:app"
+pkflow = "pkflow.cli:app"
 
 [build-system]
 requires = ["hatchling"]

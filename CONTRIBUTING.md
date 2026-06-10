@@ -1,6 +1,6 @@
-# Contributing to Pyrana
+# Contributing to PKflow
 
-Thanks for your interest in improving Pyrana! This document explains how to set
+Thanks for your interest in improving PKflow! This document explains how to set
 up a development environment and the conventions the project follows.
 
 ## Development setup
@@ -8,8 +8,8 @@ up a development environment and the conventions the project follows.
 Requires Python ≥ 3.10.
 
 ```bash
-git clone https://github.com/kinginsun/pyrana.git
-cd pyrana
+git clone https://github.com/kinginsun/pkflow.git
+cd pkflow
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 python -m pytest        # confirm the suite is green
@@ -25,7 +25,7 @@ HTML/DOCX reports). The bulk of the test suite runs without them.
 2. **Branch** from `main` for your change.
 3. **Test-driven development.** Add a failing test that captures the desired
    behavior, watch it fail, then write the minimal code to pass it. This is how
-   every feature and bug fix in Pyrana has been built.
+   every feature and bug fix in PKflow has been built.
 4. **Keep the suite green.** Run `python -m pytest` before opening a PR.
 5. **Open a pull request** describing what changed and why, and link the issue.
 

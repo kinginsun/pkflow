@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import pandas as pd
 import pytest
 
-from pyrana.backends.nonmem import NonmemBackend, _classify, _select_covariates
-from pyrana.model import Model, Results
+from pkflow.backends.nonmem import NonmemBackend, _classify, _select_covariates
+from pkflow.model import Model, Results
 
 TEMPLATE = Path("/home/ubuntu/pirana/templates/004.mod")
 
@@ -111,7 +111,7 @@ def test_select_covariates_empty_when_nothing_qualifies():
 
 
 def test_collect_stores_covariates(tmp_path, monkeypatch):
-    from pyrana.backends.base import RunHandle
+    from pkflow.backends.base import RunHandle
     import pharmpy.tools
     monkeypatch.setattr(pharmpy.tools, "read_modelfit_results", lambda ctl: _fake_mfr())
     covs = pd.DataFrame({"ID": [1, 2], "WT": [70, 85]})
@@ -224,7 +224,7 @@ def _fake_mfr():
 
 
 def test_collect_maps_mfr_to_results(tmp_path, monkeypatch):
-    from pyrana.backends.base import RunHandle
+    from pkflow.backends.base import RunHandle
     import pharmpy.tools
     monkeypatch.setattr(pharmpy.tools, "read_modelfit_results", lambda ctl: _fake_mfr())
 
@@ -240,7 +240,7 @@ def test_collect_maps_mfr_to_results(tmp_path, monkeypatch):
 
 
 def test_collect_computes_eta_shrinkage_via_pharmpy(tmp_path, monkeypatch):
-    from pyrana.backends.base import RunHandle
+    from pkflow.backends.base import RunHandle
     import pharmpy.tools
     import pharmpy.modeling as pm
     monkeypatch.setattr(pharmpy.tools, "read_modelfit_results", lambda ctl: _fake_mfr())
@@ -258,7 +258,7 @@ def test_collect_computes_eta_shrinkage_via_pharmpy(tmp_path, monkeypatch):
 
 def test_collect_shrinkage_empty_when_uncomputable(tmp_path, monkeypatch):
     # no raw model / pharmpy raises → shrinkage degrades to {} (no crash)
-    from pyrana.backends.base import RunHandle
+    from pkflow.backends.base import RunHandle
     import pharmpy.tools
     monkeypatch.setattr(pharmpy.tools, "read_modelfit_results", lambda ctl: _fake_mfr())
     r = NonmemBackend().collect(Model(path=Path("m.ctl"), backend="nonmem"),
@@ -267,7 +267,7 @@ def test_collect_shrinkage_empty_when_uncomputable(tmp_path, monkeypatch):
 
 
 def test_collect_flags_failed_on_nonzero_returncode(tmp_path, monkeypatch):
-    from pyrana.backends.base import RunHandle
+    from pkflow.backends.base import RunHandle
     import pharmpy.tools
     monkeypatch.setattr(pharmpy.tools, "read_modelfit_results", lambda ctl: _fake_mfr())
     r = NonmemBackend().collect(
@@ -279,7 +279,7 @@ def test_collect_flags_failed_on_nonzero_returncode(tmp_path, monkeypatch):
 
 
 def test_collect_flags_minimization_terminated(tmp_path, monkeypatch):
-    from pyrana.backends.base import RunHandle
+    from pkflow.backends.base import RunHandle
     import pharmpy.tools
     mfr = _fake_mfr()
     mfr.minimization_successful = False
@@ -338,7 +338,7 @@ def test_simulate_raises_on_nonzero_returncode(tmp_path, monkeypatch):
 
 
 def test_read_stacked_table_assigns_replicate_per_block(tmp_path):
-    from pyrana.backends.nonmem import _read_stacked_table
+    from pkflow.backends.nonmem import _read_stacked_table
     p = tmp_path / "sdtab1"
     p.write_text(_STACKED)
     df = _read_stacked_table(p)
