@@ -114,6 +114,7 @@ def test_collect_stores_covariates(tmp_path, monkeypatch):
     from pkflow.backends.base import RunHandle
     import pharmpy.tools
     monkeypatch.setattr(pharmpy.tools, "read_modelfit_results", lambda ctl: _fake_mfr())
+    (tmp_path / "m.ext").touch()  # NONMEM success marker
     covs = pd.DataFrame({"ID": [1, 2], "WT": [70, 85]})
     monkeypatch.setattr(NonmemBackend, "_extract_covariates",
                         staticmethod(lambda model: covs))
@@ -229,6 +230,7 @@ def test_collect_maps_mfr_to_results(tmp_path, monkeypatch):
     monkeypatch.setattr(pharmpy.tools, "read_modelfit_results", lambda ctl: _fake_mfr())
 
     model = Model(path=Path("m.ctl"), backend="nonmem")
+    (tmp_path / "m.ext").touch()  # NONMEM success marker
     handle = RunHandle(run_dir=tmp_path, returncode=0, lst=tmp_path / "m.lst")
     r = NonmemBackend().collect(model, tmp_path, handle)
 
@@ -250,6 +252,7 @@ def test_collect_computes_eta_shrinkage_via_pharmpy(tmp_path, monkeypatch):
                         raising=False)
 
     model = Model(path=Path("m.ctl"), backend="nonmem", raw=object())
+    (tmp_path / "m.ext").touch()
     r = NonmemBackend().collect(model, tmp_path,
                                 RunHandle(run_dir=tmp_path, returncode=0))
     assert r.eta_shrinkage == {"ETA_1": 0.42}
@@ -278,12 +281,43 @@ def test_collect_flags_failed_on_nonzero_returncode(tmp_path, monkeypatch):
     assert r.status == "failed"
 
 
+def test_collect_returns_failed_when_ext_missing(tmp_path):
+    """When NONMEM produces no .ext, pkflow returns a clean failed Results
+    carrying the tail of .lst — never a Python traceback."""
+    from pkflow.backends.base import RunHandle
+    # No .ext touched; create a .lst with an error message
+    lst = tmp_path / "m.lst"
+    lst.write_text("0PROGRAM TERMINATED BY OBJ\n*** ERROR ***\nBAD CONTROL STREAM\n")
+    r = NonmemBackend().collect(
+        Model(path=Path("m.ctl"), backend="nonmem"),
+        tmp_path,
+        RunHandle(run_dir=tmp_path, returncode=1, lst=lst),
+    )
+    assert r.status == "failed"
+    assert "BAD CONTROL STREAM" in r.error_log
+    assert "m.lst" in r.error_log
+
+
+def test_collect_failed_when_no_lst_either(tmp_path):
+    """When even .lst is missing, fall back to executor stderr.log."""
+    from pkflow.backends.base import RunHandle
+    (tmp_path / "stderr.log").write_text("nmfe: command not found\n")
+    r = NonmemBackend().collect(
+        Model(path=Path("m.ctl"), backend="nonmem"),
+        tmp_path,
+        RunHandle(run_dir=tmp_path, returncode=127, lst=tmp_path / "m.lst"),
+    )
+    assert r.status == "failed"
+    assert "command not found" in r.error_log
+
+
 def test_collect_flags_minimization_terminated(tmp_path, monkeypatch):
     from pkflow.backends.base import RunHandle
     import pharmpy.tools
     mfr = _fake_mfr()
     mfr.minimization_successful = False
     monkeypatch.setattr(pharmpy.tools, "read_modelfit_results", lambda ctl: mfr)
+    (tmp_path / "m.ext").touch()
     r = NonmemBackend().collect(
         Model(path=Path("m.ctl"), backend="nonmem"),
         tmp_path,
@@ -324,6 +358,36 @@ def test_simulate_reads_stacked_table_into_replicates(tmp_path, monkeypatch):
     assert list(out.columns) == ["REPLICATE", "ID", "TIME", "DV"]
     assert set(out["REPLICATE"]) == {1, 2}
     assert len(out) == 4
+
+
+# NONMEM in $SIMULATION appends its own default columns (DV PRED RES WRES)
+# after the requested ones, so the emitted $TABLE carries DV *twice*.
+_STACKED_DUP_DV = (
+    "TABLE NO.  1\n ID TIME DV PRED DV\n 1 0.0 1.0 0.9 1.0\n 2 0.0 2.0 1.9 2.0\n"
+    "TABLE NO.  2\n ID TIME DV PRED DV\n 1 0.0 1.1 0.9 1.1\n 2 0.0 2.1 1.9 2.1\n"
+)
+
+
+def test_simulate_dedupes_duplicate_dv_columns(tmp_path, monkeypatch):
+    """Regression: a sim $TABLE with two DV columns must collapse to one,
+    otherwise sim_df["DV"] is a DataFrame and downstream VPC binning breaks."""
+    import pharmpy.modeling as pm
+
+    def fake_write_model(model, path, force=True):
+        Path(path).write_text("$PROBLEM x\n$TABLE ID TIME DV PRED DV FILE=sdtab1\n"
+                              "$SIMULATION (1) SUBPROBLEMS=2 ONLYSIMULATION\n")
+        (Path(path).parent / "sdtab1").write_text(_STACKED_DUP_DV)
+
+    monkeypatch.setattr(pm, "set_simulation", lambda m, n, seed: object(), raising=False)
+    monkeypatch.setattr(pm, "write_model", fake_write_model, raising=False)
+
+    model = Model(path=Path("m.ctl"), backend="nonmem", raw=object())
+    out = NonmemBackend().simulate(model, _sim_results(), tmp_path,
+                                   FakeExecutor({"nmfe": "nmfe76"}), n_sim=2)
+    assert list(out.columns) == ["REPLICATE", "ID", "TIME", "DV"]
+    # the surviving DV is a 1-D Series, not a 2-col frame
+    assert out["DV"].ndim == 1
+    assert out["DV"].tolist() == [1.0, 2.0, 1.1, 2.1]
 
 
 def test_simulate_raises_on_nonzero_returncode(tmp_path, monkeypatch):

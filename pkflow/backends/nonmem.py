@@ -63,6 +63,22 @@ class NonmemBackend:
 
         started = datetime.fromtimestamp(handle.run_dir.stat().st_mtime)
         ctl = run_dir / model.path.name
+        lst = handle.extra.get("lst", ctl.with_suffix(".lst"))
+        ext = ctl.with_suffix(".ext")
+
+        # NONMEM failed if .ext is absent — pharmpy can't parse results without it.
+        # Return a failed Results carrying the tail of .lst / stderr so the user
+        # can see *why* without a Python traceback.
+        if not ext.exists():
+            return _failed_results(
+                run_dir=run_dir,
+                model_path=model.path,
+                started=started,
+                returncode=handle.returncode,
+                lst=lst,
+                stderr_log=run_dir / "stderr.log",
+            )
+
         mfr = read_modelfit_results(ctl)
 
         # Parameters → unified DataFrame
@@ -156,6 +172,12 @@ class NonmemBackend:
         if tab is None:
             raise RuntimeError(f"simulation produced no readable $TABLE in {sim_dir}")
         sim_df = _read_stacked_table(tab)
+
+        # NONMEM in $SIMULATION appends its own default columns (DV PRED RES
+        # WRES) after the requested ones, so the table can carry DV twice.
+        # Keep the first occurrence of each name; otherwise sim_df["DV"] is a
+        # 2-column frame and the VPC binning blows up.
+        sim_df = sim_df.loc[:, ~sim_df.columns.duplicated()]
 
         missing = {"ID", "TIME", "DV"} - set(sim_df.columns)
         if missing:
@@ -299,6 +321,43 @@ def _localize_data_record(ctl_text: str, data_name: str) -> str:
         ctl_text,
         count=1,
     )
+
+
+def _failed_results(*, run_dir, model_path, started, returncode, lst, stderr_log) -> Results:
+    """Build a status='failed' Results carrying diagnostic text from .lst / stderr.
+
+    NONMEM writes its own error messages into the .lst (look for lines starting
+    with '0' and '*** ERROR ***' / 'FORMATTED' blocks). When .lst is also
+    missing (e.g. nmfe never started), fall back to executor stderr.log.
+    """
+    err = _read_failure_log(lst, stderr_log)
+    return Results(
+        run_id=run_dir.name,
+        backend="nonmem",
+        model_path=model_path,
+        started_at=started,
+        duration_s=0.0,
+        status="failed",
+        error_log=err,
+        artifacts={
+            "lst": lst,
+            "stderr": stderr_log,
+            "stdout": run_dir / "stdout.log",
+        },
+    )
+
+
+def _read_failure_log(lst: Path, stderr_log: Path, *, max_lines: int = 40) -> str:
+    """Last N lines of .lst (preferred) or stderr.log (fallback)."""
+    for p in (lst, stderr_log):
+        try:
+            if p.exists() and p.stat().st_size > 0:
+                text = p.read_text(errors="replace").splitlines()
+                tail = text[-max_lines:]
+                return f"--- tail of {p.name} ---\n" + "\n".join(tail)
+        except OSError:
+            continue
+    return "(no .lst or stderr.log found — nmfe likely failed to start)"
 
 
 def _classify(name: str) -> str:

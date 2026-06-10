@@ -44,6 +44,7 @@ class Results:
     correlation_matrix: pd.DataFrame | None = None
 
     artifacts: dict[str, Path] = field(default_factory=dict)
+    error_log: str = ""  # diagnostic text for status='failed' runs (e.g. tail of .lst)
 
     # ---- persistence ----
     def save(self, run_dir: Path) -> None:
@@ -72,6 +73,7 @@ class Results:
             "eta_shrinkage": {k: _py(v) for k, v in self.eta_shrinkage.items()},
             "eps_shrinkage": {k: _py(v) for k, v in self.eps_shrinkage.items()},
             "artifacts": {k: str(v) for k, v in self.artifacts.items()},
+            "error_log": self.error_log,
         }
         (run_dir / "results.yaml").write_text(yaml.safe_dump(meta, sort_keys=False))
 
@@ -92,6 +94,7 @@ class Results:
             eta_shrinkage=meta.get("eta_shrinkage", {}),
             eps_shrinkage=meta.get("eps_shrinkage", {}),
             artifacts={k: Path(v) for k, v in meta.get("artifacts", {}).items()},
+            error_log=meta.get("error_log", ""),
         )
         for attr, fname in [("parameters", "parameters.parquet"),
                             ("predictions", "predictions.parquet"),

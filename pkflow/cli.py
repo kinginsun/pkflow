@@ -4,7 +4,7 @@ from pathlib import Path
 import time
 import typer
 
-from . import backends, config
+from . import __version__, backends, config
 from .compare import build_table, overlay_gof
 from .diagnostics import save_gof, save_vpc, save_shrinkage, save_eta_covariates
 from .executors import LocalExecutor
@@ -13,6 +13,24 @@ from .report import render as render_report
 from .workflows import bootstrap as run_bootstrap
 
 app = typer.Typer(add_completion=False, help="Pharmacometric modeling workflow CLI")
+
+
+def _version_callback(value: bool) -> None:
+    if value:
+        typer.echo(f"pkflow {__version__}")
+        raise typer.Exit()
+
+
+@app.callback()
+def _main(
+    version: bool = typer.Option(
+        False, "--version", "-V",
+        help="Show pkflow version and exit.",
+        callback=_version_callback,
+        is_eager=True,
+    ),
+) -> None:
+    """Pharmacometric modeling workflow CLI."""
 
 
 def _new_run_dir(root: Path, model_path: Path) -> Path:
@@ -53,6 +71,15 @@ def run(
     results = be.collect(m, run_dir, handle)
     results.duration_s = time.time() - t0
     results.save(run_dir)
+
+    if results.status == "failed":
+        typer.secho(f"✗ run failed ({results.duration_s:.1f}s)", fg="red", err=True)
+        if results.error_log:
+            typer.echo("", err=True)
+            typer.echo(results.error_log, err=True)
+        typer.echo("", err=True)
+        typer.secho(f"  full log: {run_dir}/", fg="yellow", err=True)
+        raise typer.Exit(code=1)
 
     typer.echo(f"status: {results.status}  ofv: {results.ofv}  ({results.duration_s:.1f}s)")
 
@@ -232,6 +259,80 @@ def report(
     out_dir = out or (run_dir / "report")
     path = render_report(r, run_dir, out_dir, fmt=fmt)
     typer.echo(f"→ {path}")
+
+
+## ---------------------------------------------------------------------------
+## config — view / set / unset / path
+## ---------------------------------------------------------------------------
+config_app = typer.Typer(help="View or edit pkflow configuration.")
+app.add_typer(config_app, name="config")
+
+
+@config_app.command("show")
+def config_show():
+    """Show the resolved config with the source of each value."""
+    rows = config.load_with_sources()
+    width = max(len(k) for k in rows)
+    typer.echo(f"{'key':<{width}}  value  (source)")
+    typer.echo("-" * (width + 30))
+    for k, (v, src) in rows.items():
+        color = {"default": "white", "user": "cyan", "project": "green"}[src]
+        typer.echo(f"{k:<{width}}  ", nl=False)
+        typer.secho(f"{v}", fg=color, nl=False)
+        typer.echo(f"  ({src})")
+    typer.echo("")
+    typer.echo(f"user file:    {config.user_config_path()}")
+    typer.echo(f"project file: {config.project_config_path()}")
+
+
+@config_app.command("get")
+def config_get(key: str):
+    """Print one resolved value."""
+    cfg = config.load()
+    if key not in cfg:
+        typer.secho(f"unknown key: {key}", fg="red", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(cfg[key])
+
+
+@config_app.command("set")
+def config_set(
+    key: str,
+    value: str,
+    project: bool = typer.Option(
+        False, "--project",
+        help="Write to ./pkflow.toml (default: ~/.config/pkflow/config.toml)",
+    ),
+):
+    """Set a config key. Default scope is user-global."""
+    scope = "project" if project else "user"
+    try:
+        path = config.set_value(key, value, scope=scope)
+    except KeyError as e:
+        typer.secho(str(e), fg="red", err=True)
+        raise typer.Exit(code=1)
+    typer.echo(f"→ {path}")
+    typer.echo(f"  {key} = {value}  ({scope})")
+
+
+@config_app.command("unset")
+def config_unset(
+    key: str,
+    project: bool = typer.Option(False, "--project", help="Remove from project file"),
+):
+    """Remove a key from the user or project config file."""
+    scope = "project" if project else "user"
+    path = config.unset_value(key, scope=scope)
+    typer.echo(f"→ {path}  (removed {key})")
+
+
+@config_app.command("path")
+def config_path(
+    project: bool = typer.Option(False, "--project", help="Print project path"),
+):
+    """Print the path of the config file (user by default)."""
+    p = config.project_config_path() if project else config.user_config_path()
+    typer.echo(p)
 
 
 if __name__ == "__main__":
