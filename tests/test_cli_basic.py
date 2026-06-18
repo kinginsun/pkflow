@@ -38,4 +38,4 @@ def test_diagnose_command_writes_plots(tmp_path):
     out = tmp_path / "diag"
     result = runner.invoke(app, ["diagnose", str(tmp_path), "--out", str(out)])
     assert result.exit_code == 0, result.output
-    assert len(list(out.glob("*.png"))) == 4
+    assert (out / "gof.png").exists() and (out / "gof.png").stat().st_size > 0

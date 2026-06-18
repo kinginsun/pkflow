@@ -90,10 +90,15 @@ def _loess_line(ax, x, y, *, color: str = "blue") -> None:
         return
     order = np.argsort(x)
     x, y = x[order], y[order]
-    model = loess(x, y, span=0.3, iterations=0)
-    model.fit()
-    fitted = model.predict(x)
-    ax.plot(x, fitted.values, color=color, linewidth=0.7)
+    for span in (0.3, 0.5, 0.75):
+        try:
+            model = loess(x, y, span=span, iterations=0)
+            model.fit()
+            fitted = model.predict(x)
+            ax.plot(x, fitted.values, color=color, linewidth=0.7)
+            return
+        except ValueError:
+            continue
 
 
 def _plot_identity_panel(ax, df: pd.DataFrame, x: str, y: str, title: str) -> None:
