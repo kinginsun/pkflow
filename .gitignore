@@ -28,6 +28,9 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 
+# ---- Graphify (local knowledge graph) ----
+graphify-out/
+
 # ---- PKflow run outputs ----
 # Run directories and command outputs are reproducible artifacts, not source.
 runs/

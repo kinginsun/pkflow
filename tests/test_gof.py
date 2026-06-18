@@ -46,9 +46,8 @@ def test_gof_drops_mdv_rows():
     assert len(panels["dv_vs_pred"].data) == 8
 
 
-def test_save_gof_writes_four_pngs(tmp_path):
+def test_save_gof_writes_combined_png(tmp_path):
     r = make_results("a", predictions=_full_preds())
     written = save_gof(r, tmp_path)
-    assert len(written) == 4
-    for p in written:
-        assert p.exists() and p.suffix == ".png"
+    assert written == [tmp_path / "gof.png"]
+    assert written[0].exists() and written[0].stat().st_size > 0
