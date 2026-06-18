@@ -25,7 +25,7 @@ workbench, with three deliberate design choices:
 - **Pure functions you can test.** The statistics (VPC binning, bootstrap CIs,
   shrinkage, comparison tables) are pure and unit-tested without needing NONMEM.
 
-> **Status:** early alpha (`0.1.0a6`). The NONMEM workflow below works
+> **Status:** early alpha (`0.1.0a7`). The NONMEM workflow below works
 > end-to-end against a real `nmfe` binary. APIs may still change.
 
 ---
